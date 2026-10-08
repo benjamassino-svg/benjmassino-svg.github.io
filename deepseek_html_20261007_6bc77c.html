@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎨 Adivina y Pinta la Bandera - 1 o 2 Jugadores</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #fff;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 8px rgba(0,0,0,.4);
+    text-align: center;
+  }
+  .subtitulo {
+    font-size: .95rem;
+    opacity: .85;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+
+  /* ------- PANTALLA DE INICIO ------- */
+  .pantalla-inicio {
+    background: rgba(255,255,255,.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 20px;
+    padding: 30px 36px;
+    text-align: center;
+    max-width: 480px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  }
+  .pantalla-inicio h2 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: #ffe066;
+  }
+  .pantalla-inicio p {
+    font-size: .9rem;
+    opacity: .9;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+  .modos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .btn-modo {
+    padding: 16px 20px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 14px;
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+  }
+  .btn-modo:hover {
+    background: rgba(255,255,255,.2);
+    transform: translateY(-2px);
+    border-color: #ffe066;
+  }
+  .btn-modo .emoji { font-size: 1.6rem; }
+
+  /* ------- MARCADOR ------- */
+  .marcador {
+    display: none;
+    gap: 12px;
+    margin-bottom: 14px;
+    width: 100%;
+    max-width: 620px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .tarjeta-jugador {
+    flex: 1;
+    min-width: 160px;
+    background: rgba(255,255,255,.08);
+    border: 2px solid rgba(255,255,255,.15);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: all .3s;
+    position: relative;
+  }
+  .tarjeta-jugador.activo {
+    border-color: #ffe066;
+    background: rgba(255,224,102,.15);
+    box-shadow: 0 0 20px rgba(255,224,102,.35);
+    transform: scale(1.03);
+  }
+  .tarjeta-jugador.ganador-ronda {
+    animation: pulso 0.6s ease 2;
+  }
+  @keyframes pulso {
+    0%, 100% { box-shadow: 0 0 0 rgba(40,199,111,0); }
+    50% { box-shadow: 0 0 25px rgba(40,199,111,.9); }
+  }
+  .tarjeta-jugador .nombre-jugador {
+    font-size: .9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .tarjeta-jugador .puntos {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #ffe066;
+    line-height: 1;
+  }
+  .tarjeta-jugador .puntos small {
+    font-size: .7rem;
+    font-weight: 400;
+    opacity: .7;
+    color: #fff;
+  }
+  .tarjeta-jugador .puntaje-ronda {
+    font-size: .8rem;
+    opacity: .85;
+    margin-top: 4px;
+    min-height: 1em;
+  }
+
+  /* ------- PANEL DEL PAÍS ------- */
+  .panel {
+    background: rgba(255,255,255,.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 18px;
+    padding: 16px 22px;
+    margin-bottom: 14px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    width: 100%;
+    max-width: 620px;
+  }
+  .turno-actual {
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #ffe066;
+    margin-bottom: 4px;
+  }
+  .pais-nombre {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+  }
+  .pais-nombre small {
+    display: block;
+    font-size: .78rem;
+    font-weight: 400;
+    color: #ddd;
+    letter-spacing: 0;
+    margin-top: 4px;
+  }
+  .contador {
+    font-size: .8rem;
+    opacity: .75;
+    margin-bottom: 4px;
+  }
+
+  /* Zona de dibujo con borde negro visible */
+  .contenedor-dibujo {
+    position: relative;
+    background: #000;         /* Borde negro visible */
+    border-radius: 12px;
+    padding: 4px;             /* Grosor del borde negro */
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  canvas {
+    display: block;
+    border-radius: 6px;
+    cursor: crosshair;
+    touch-action: none;
+    background: #fff;
+  }
+
+  /* Paleta */
+  .paleta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+    margin: 14px 0 8px;
+    max-width: 620px;
+  }
+  .color-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.6);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 3px 10px rgba(0,0,0,.3);
+  }
+  .color-btn:hover { transform: scale(1.12); }
+  .color-btn.activo {
+    transform: scale(1.2);
+    border-color: #ffe066;
+    box-shadow: 0 0 0 3px #ffe066, 0 3px 12px rgba(0,0,0,.4);
+  }
+
+  /* Control de tamaño */
+  .control-pincel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 8px 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(10px);
+  }
+  .control-pincel label {
+    font-size: .85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  #tamanoPincel {
+    width: 160px;
+    accent-color: #ffe066;
+    cursor: pointer;
+  }
+  .preview-pincel {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255,255,255,.3);
+    flex-shrink: 0;
+  }
+  .preview-pincel .punto {
+    background: #fff;
+    border-radius: 50%;
+    transition: all .15s;
+  }
+  .valor-pincel {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #ffe066;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  /* Herramientas */
+  .herramientas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 12px;
+    max-width: 700px;
+  }
+  button.accion {
+    padding: 9px 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .15s, filter .15s;
+    box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  }
+  button.accion:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  button.accion:active { transform: translateY(0); }
+  button.accion:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+  }
+  .btn-limpiar { background: #f0f0f0; color: #333; }
+  .btn-evaluar { background: #28c76f; color: #fff; }
+  .btn-pista { background: #ff9f43; color: #fff; }
+  .btn-siguiente { background: #7367f0; color: #fff; }
+  .btn-borrador { background: #e74c3c; color: #fff; }
+  .btn-pincel { background: #00cfe8; color: #fff; }
+  .btn-balde { background: #9b59b6; color: #fff; }
+  .btn-rect { background: #f39c12; color: #fff; }
+  .btn-circle { background: #e91e63; color: #fff; }
+  .btn-linea { background: #16a085; color: #fff; }
+  .btn-triangulo { background: #8e44ad; color: #fff; }
+
+  .btn-pincel.activo,
+  .btn-balde.activo,
+  .btn-borrador.activo,
+  .btn-rect.activo,
+  .btn-circle.activo,
+  .btn-linea.activo,
+  .btn-triangulo.activo {
+    outline: 3px solid #ffe066;
+    outline-offset: 2px;
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  /* Modo relleno para figuras */
+  .fila-relleno {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15);
+    padding: 6px 14px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: .85rem;
+  }
+  .fila-relleno input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #ffe066;
+    cursor: pointer;
+  }
+  .fila-relleno label { cursor: pointer; user-select: none; }
+
+  /* Resultado */
+  .resultado {
+    display: none;
+    background: rgba(0,0,0,.35);
+    border-radius: 16px;
+    padding: 18px 26px;
+    text-align: center;
+    margin-top: 10px;
+    max-width: 560px;
+    border: 1px solid rgba(255,255,255,.15);
+    animation: aparecer .4s ease;
+  }
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .porcentaje {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 6px 0;
+  }
+  .mensaje { font-size: 1rem; margin-top: 6px; }
+  .comparacion {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .comparacion .miniatura {
+    text-align: center;
+    font-size: .75rem;
+    opacity: .9;
+  }
+  .comparacion canvas {
+    width: 110px;
+    height: auto;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,.5);
+    margin-top: 4px;
+  }
+
+  .pista-texto {
+    display: none;
+    margin-top: 12px;
+    font-size: .9rem;
+    background: rgba(255,159,67,.2);
+    border: 1px solid rgba(255,159,67,.5);
+    padding: 8px 14px;
+    border-radius: 10px;
+    max-width: 520px;
+    text-align: center;
+  }
+
+  /* ------- PANTALLA FINAL ------- */
+  .pantalla-final {
+    display: none;
+    background: rgba(0,0,0,.4);
+    backdrop-filter: blur(12px);
+    border: 2px solid #ffe066;
+    border-radius: 20px;
+    padding: 34px 40px;
+    text-align: center;
+    max-width: 480px;
+    box-shadow: 0 12px 50px rgba(255,224,102,.35);
+    animation: aparecer .5s ease;
+  }
+  .pantalla-final .trofeo { font-size: 4rem; margin-bottom: 8px; }
+  .pantalla-final h2 {
+    font-size: 1.8rem;
+    color: #ffe066;
+    margin-bottom: 10px;
+  }
+  .pantalla-final p {
+    font-size: 1rem;
+    opacity: .9;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+  .btn-reiniciar {
+    padding: 14px 30px;
+    border: none;
+    border-radius: 12px;
+    background: #28c76f;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 20px rgba(40,199,111,.4);
+  }
+  .btn-reiniciar:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+  }
+  .btn-salir {
+    padding: 14px 30px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    margin-left: 10px;
+  }
+  .btn-salir:hover { background: rgba(255,255,255,.25); }
+</style>
+</head>
+<body>
+
+  <h1>🎨 Adivina y Pinta la Bandera</h1>
+
+  <!-- ============ PANTALLA DE INICIO ============ -->
+  <div class="pantalla-inicio" id="pantallaInicio">
+    <h2>Elegí el modo de juego</h2>
+    <p>Dibuja la bandera del país que te toque. Se evalúa píxel a píxel contra la bandera real. Gana quien llegue a <strong>5 puntos</strong> primero.</p>
+    <div class="modos">
+      <button class="btn-modo" id="btnUnJugador">
+        <span class="emoji">👤</span> 1 Jugador
+      </button>
+      <button class="btn-modo" id="btnDosJugadores">
+        <span class="emoji">👥</span> 2 Jugadores (por turnos)
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ JUEGO ============ -->
+  <div id="juegoCompleto" style="display:none; flex-direction: column; align-items: center; width: 100%;">
+
+    <!-- Marcador -->
+    <div class="marcador" id="marcador">
+      <div class="tarjeta-jugador" id="tarjetaJ1">
+        <div class="nombre-jugador">🔵 Jugador 1</div>
+        <div class="puntos"><span id="puntosJ1">0</span><small>/5</small></div>
+        <div class="puntaje-ronda" id="rondaJ1"></div>
+      </div>
+      <div class="tarjeta-jugador" id="tarjetaJ2">
+        <div class="nombre-jugador">🔴 Jugador 2</div>
+        <div class="puntos"><span id="puntosJ2">0</span><small>/5</small></div>
+        <div class="puntaje-ronda" id="rondaJ2"></div>
+      </div>
+    </div>
+
+    <!-- Panel del país y turno -->
+    <div class="panel">
+      <div class="contador" id="contador">Ronda 1</div>
+      <div class="turno-actual" id="turnoActual">👤 Turno: Jugador 1</div>
+      <div class="pais-nombre" id="nombrePais">—</div>
+    </div>
+
+    <!-- Lienzo (con borde negro) -->
+    <div class="contenedor-dibujo">
+      <canvas id="lienzo" width="400" height="260"></canvas>
+    </div>
+
+    <!-- Paleta -->
+    <div class="paleta" id="paleta"></div>
+
+    <!-- Control de tamaño -->
+    <div class="control-pincel">
+      <label for="tamanoPincel" id="labelTamano">✏️ Grosor</label>
+      <input type="range" id="tamanoPincel" min="1" max="80" value="14">
+      <div class="preview-pincel">
+        <div class="punto" id="previewPunto" style="width:14px;height:14px;"></div>
+      </div>
+      <span class="valor-pincel" id="valorPincel">14</span>
+    </div>
+
+    <!-- Modo relleno para figuras -->
+    <div class="fila-relleno" id="filaRelleno" style="display:none;">
+      <input type="checkbox" id="checkRelleno">
+      <label for="checkRelleno">🎨 Rellenar figura</label>
+    </div>
+
+    <!-- Herramientas -->
+    <div class="herramientas">
+      <button class="accion btn-pincel activo" id="btnPincel">✏️ Pincel</button>
+      <button class="accion btn-balde" id="btnBalde">🪣 Balde</button>
+      <button class="accion btn-borrador" id="btnBorrador">🧽 Borrador</button>
+      <button class="accion btn-linea" id="btnLinea">📏 Línea</button>
+      <button class="accion btn-rect" id="btnRect">▭ Rect</button>
+      <button class="accion btn-circle" id="btnCircle">◯ Círculo</button>
+      <button class="accion btn-triangulo" id="btnTriangulo">△ Triángulo</button>
+      <button class="accion btn-limpiar" id="btnLimpiar">🗑️ Limpiar</button>
+      <button class="accion btn-pista" id="btnPista">💡 Pista</button>
+      <button class="accion btn-evaluar" id="btnEvaluar">✅ Evaluar</button>
+      <button class="accion btn-siguiente" id="btnSiguiente" style="display:none;">➡️ Siguiente turno</button>
+    </div>
+
+    <div class="pista-texto" id="pistaTexto"></div>
+
+    <!-- Resultado de la ronda -->
+    <div class="resultado" id="resultado">
+      <div id="tituloResultado">Tu puntuación:</div>
+      <div class="porcentaje" id="porcentaje">0%</div>
+      <div class="mensaje" id="mensaje"></div>
+      <div class="comparacion">
+        <div class="miniatura">
+          Tu dibujo
+          <canvas id="miniUsuario" width="110" height="72"></canvas>
+        </div>
+        <div class="miniatura">
+          Bandera real
+          <canvas id="miniReal" width="110" height="72"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA FINAL ============ -->
+  <div class="pantalla-final" id="pantallaFinal">
+    <div class="trofeo">🏆</div>
+    <h2 id="ganadorTitulo">¡Ganó Jugador 1!</h2>
+    <p id="ganadorTexto"></p>
+    <button class="btn-reiniciar" id="btnReiniciar">🔄 Jugar de nuevo</button>
+    <button class="btn-salir" id="btnSalir">🏠 Menú principal</button>
+  </div>
+
+<script>
+/* ============================================================
+   1. DEFINICIÓN DE PAÍSES
+   ============================================================ */
+const PAISES = [
+  {
+    nombre: "Argentina",
+    pista: "Tres franjas horizontales: celeste, blanca y celeste, con un sol dorado en el centro.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#74ACDF"; ctx.fillRect(0, 0, w, h/3);
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, h/3, w, h/3);
+      ctx.fillStyle = "#74ACDF"; ctx.fillRect(0, 2*h/3, w, h/3);
+      const cx = w/2, cy = h/2, r = h/10;
+      ctx.fillStyle = "#F6B40E";
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "#F6B40E"; ctx.lineWidth = Math.max(2, h/50);
+      for (let i = 0; i < 16; i++) {
+        const a = (i/16)*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a)*r*1.1, cy + Math.sin(a)*r*1.1);
+        ctx.lineTo(cx + Math.cos(a)*r*1.7, cy + Math.sin(a)*r*1.7);
+        ctx.stroke();
+      }
+    }
+  },
+  {
+    nombre: "Francia",
+    pista: "Tres franjas verticales: azul, blanca y roja.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#0055A4"; ctx.fillRect(0, 0, w/3, h);
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(w/3, 0, w/3, h);
+      ctx.fillStyle = "#EF4135"; ctx.fillRect(2*w/3, 0, w/3, h);
+    }
+  },
+  {
+    nombre: "Italia",
+    pista: "Tres franjas verticales: verde, blanca y roja.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#009246"; ctx.fillRect(0, 0, w/3, h);
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(w/3, 0, w/3, h);
+      ctx.fillStyle = "#CE2B37"; ctx.fillRect(2*w/3, 0, w/3, h);
+    }
+  },
+  {
+    nombre: "Alemania",
+    pista: "Tres franjas horizontales: negra, roja y dorada.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, w, h/3);
+      ctx.fillStyle = "#DD0000"; ctx.fillRect(0, h/3, w, h/3);
+      ctx.fillStyle = "#FFCE00"; ctx.fillRect(0, 2*h/3, w, h/3);
+    }
+  },
+  {
+    nombre: "Japón",
+    pista: "Fondo blanco con un gran círculo rojo en el centro.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#BC002D";
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, h*0.3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  },
+  {
+    nombre: "Colombia",
+    pista: "Tres franjas horizontales: amarilla (la mitad), azul y roja.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#FCD116"; ctx.fillRect(0, 0, w, h/2);
+      ctx.fillStyle = "#003893"; ctx.fillRect(0, h/2, w, h/4);
+      ctx.fillStyle = "#CE1126"; ctx.fillRect(0, 3*h/4, w, h/4);
+    }
+  },
+  {
+    nombre: "Suecia",
+    pista: "Fondo azul con una cruz escandinava amarilla.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#006AA7"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#FECC00";
+      const grosor = h*0.16;
+      ctx.fillRect(w*0.3 - grosor/2, 0, grosor, h);
+      ctx.fillRect(0, h/2 - grosor/2, w, grosor);
+    }
+  },
+  {
+    nombre: "Brasil",
+    pista: "Fondo verde, un rombo amarillo y un círculo azul con banda blanca.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#009C3B"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#FFDF00";
+      ctx.beginPath();
+      ctx.moveTo(w/2, h*0.08);
+      ctx.lineTo(w*0.92, h/2);
+      ctx.lineTo(w/2, h*0.92);
+      ctx.lineTo(w*0.08, h/2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#002776";
+      ctx.beginPath(); ctx.arc(w/2, h/2, h*0.28, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = h*0.06;
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, h*0.28, Math.PI*0.15, Math.PI*0.85);
+      ctx.stroke();
+    }
+  },
+  {
+    nombre: "Canadá",
+    pista: "Franjas verticales rojas a los costados, blanca al centro con una hoja de arce roja.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#D80621";
+      ctx.fillRect(0, 0, w/4, h);
+      ctx.fillRect(3*w/4, 0, w/4, h);
+      ctx.beginPath();
+      ctx.moveTo(w/2, h*0.22);
+      ctx.lineTo(w*0.56, h*0.4);
+      ctx.lineTo(w*0.62, h*0.38);
+      ctx.lineTo(w*0.58, h*0.52);
+      ctx.lineTo(w*0.65, h*0.55);
+      ctx.lineTo(w*0.52, h*0.65);
+      ctx.lineTo(w*0.55, h*0.78);
+      ctx.lineTo(w*0.47, h*0.78);
+      ctx.lineTo(w*0.48, h*0.65);
+      ctx.lineTo(w*0.35, h*0.55);
+      ctx.lineTo(w*0.42, h*0.52);
+      ctx.lineTo(w*0.38, h*0.38);
+      ctx.lineTo(w*0.44, h*0.4);
+      ctx.closePath();
+      ctx.fill();
+    }
+  },
+  {
+    nombre: "México",
+    pista: "Tres franjas verticales: verde, blanca y roja, con un escudo en el centro.",
+    dibujar: (ctx, w, h) => {
+      ctx.fillStyle = "#006847"; ctx.fillRect(0, 0, w/3, h);
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(w/3, 0, w/3, h);
+      ctx.fillStyle = "#CE1126"; ctx.fillRect(2*w/3, 0, w/3, h);
+      ctx.fillStyle = "#8B4513";
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, h*0.11, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+];
+
+/* ============================================================
+   2. ESTADO GENERAL
+   ============================================================ */
+const canvas = document.getElementById("lienzo");
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
+const W = canvas.width, H = canvas.height;
+
+// Borde negro interno: 4px alrededor del lienzo que NO se puede pintar
+const BORDE = 4;
+
+let paisActual = null;
+let dibujando = false;
+let colorActual = "#74ACDF";
+let tamanoPincel = 14;
+let herramienta = "pincel"; // pincel | balde | borrador | linea | rect | circle | triangulo
+let rellenarFigura = false;
+
+// Estado del dibujo de figuras
+let figuraInicio = null;         // {x, y} punto donde empezó el arrastre
+let snapshotPrevio = null;       // ImageData para restaurar mientras se previsualiza
+
+// Estado de la partida
+let modoJuego = 1;
+let jugadorActual = 1;
+let puntosJ1 = 0;
+let puntosJ2 = 0;
+let ronda = 1;
+let puntosMeta = 5;
+let esperandoSiguiente = false;
+let puntajeRondaActual = 0;
+
+// Anti-repetición de países
+let paisesDisponiblesRonda = [];
+let paisesUsadosPartida = [];
+let paisJ1 = null;
+let paisJ2 = null;
+
+const COLORES = [
+  "#FFFFFF", "#000000", "#74ACDF", "#0055A4", "#009246",
+  "#CE2B37", "#DD0000", "#FFCE00", "#F6B40E", "#FCD116",
+  "#003893", "#CE1126", "#006AA7", "#FECC00", "#009C3B",
+  "#FFDF00", "#002776", "#EF4135", "#28c76f", "#8B4513",
+  "#D80621", "#006847"
+];
+
+/* ============================================================
+   3. PALETA
+   ============================================================ */
+const paletaEl = document.getElementById("paleta");
+COLORES.forEach(c => {
+  const btn = document.createElement("div");
+  btn.className = "color-btn";
+  btn.style.background = c;
+  btn.dataset.color = c;
+  btn.addEventListener("click", () => {
+    colorActual = c;
+    if (herramienta === "borrador") setHerramienta("pincel");
+    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("activo"));
+    btn.classList.add("activo");
+    actualizarPreviewPincel();
+  });
+  paletaEl.appendChild(btn);
+});
+paletaEl.firstChild.classList.add("activo");
+
+/* ============================================================
+   4. TAMAÑO / GROSOR
+   ============================================================ */
+const slider = document.getElementById("tamanoPincel");
+const previewPunto = document.getElementById("previewPunto");
+const valorPincel = document.getElementById("valorPincel");
+const labelTamano = document.getElementById("labelTamano");
+
+const HERRAMIENTAS_FIGURA = ["rect", "circle", "triangulo", "linea"];
+
+function actualizarPreviewPincel() {
+  const esFigura = HERRAMIENTAS_FIGURA.includes(herramienta);
+  const escala = Math.min(30, Math.max(2, tamanoPincel * (30/80) + 2));
+
+  if (esFigura) {
+    // Para figuras, mostramos un cuadrado que representa el trazo
+    previewPunto.style.width = escala + "px";
+    previewPunto.style.height = escala + "px";
+    previewPunto.style.borderRadius = herramienta === "circle" ? "50%" : (herramienta === "triangulo" ? "3px" : "2px");
+    previewPunto.style.background = rellenarFigura ? colorActual : "transparent";
+    previewPunto.style.border = `2px solid ${colorActual}`;
+    previewPunto.style.opacity = "1";
+    labelTamano.textContent = "📐 Grosor";
+  } else {
+    previewPunto.style.width = escala + "px";
+    previewPunto.style.height = escala + "px";
+    previewPunto.style.borderRadius = "50%";
+    previewPunto.style.background = herramienta === "borrador" ? "#e74c3c" : colorActual;
+    previewPunto.style.border = "none";
+    previewPunto.style.opacity = herramienta === "borrador" ? "0.6" : "1";
+    labelTamano.textContent = "✏️ Grosor";
+  }
+  valorPincel.textContent = tamanoPincel;
+}
+
+slider.addEventListener("input", (e) => {
+  tamanoPincel = parseInt(e.target.value);
+  actualizarPreviewPincel();
+});
+actualizarPreviewPincel();
+
+/* ============================================================
+   5. HERRAMIENTAS
+   ============================================================ */
+const botonesHerramienta = {
+  pincel: document.getElementById("btnPincel"),
+  balde: document.getElementById("btnBalde"),
+  borrador: document.getElementById("btnBorrador"),
+  linea: document.getElementById("btnLinea"),
+  rect: document.getElementById("btnRect"),
+  circle: document.getElementById("btnCircle"),
+  triangulo: document.getElementById("btnTriangulo")
+};
+
+const filaRelleno = document.getElementById("filaRelleno");
+const checkRelleno = document.getElementById("checkRelleno");
+
+checkRelleno.addEventListener("change", () => {
+  rellenarFigura = checkRelleno.checked;
+  actualizarPreviewPincel();
+});
+
+function setHerramienta(h) {
+  herramienta = h;
+  Object.values(botonesHerramienta).forEach(b => b.classList.remove("activo"));
+  if (botonesHerramienta[h]) botonesHerramienta[h].classList.add("activo");
+
+  // Cursor adecuado
+  if (h === "balde") canvas.style.cursor = "copy";
+  else if (h === "borrador") canvas.style.cursor = "cell";
+  else if (HERRAMIENTAS_FIGURA.includes(h)) canvas.style.cursor = "crosshair";
+  else canvas.style.cursor = "crosshair";
+
+  // Mostrar/ocultar checkbox de relleno solo cuando hay una figura elegida
+  if (HERRAMIENTAS_FIGURA.includes(h) && h !== "linea") {
+    filaRelleno.style.display = "flex";
+  } else {
+    filaRelleno.style.display = "none";
+  }
+
+  actualizarPreviewPincel();
+}
+
+Object.entries(botonesHerramienta).forEach(([key, btn]) => {
+  btn.addEventListener("click", () => setHerramienta(key));
+});
+
+/* ============================================================
+   6. DIBUJO
+   ============================================================ */
+function posicion(e) {
+  const rect = canvas.getBoundingClientRect();
+  const escalaX = canvas.width / rect.width;
+  const escalaY = canvas.height / rect.height;
+  const clienteX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clienteY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clienteX - rect.left) * escalaX,
+    y: (clienteY - rect.top) * escalaY
+  };
+}
+
+/* Ajusta un punto para que quede dentro del área pintable (sin tocar bordes negros) */
+function limitarAlAreaPintable(p) {
+  return {
+    x: Math.max(BORDE, Math.min(W - BORDE, p.x)),
+    y: Math.max(BORDE, Math.min(H - BORDE, p.y))
+  };
+}
+
+/* Verifica si un punto está dentro del área pintable */
+function estaDentro(p) {
+  return p.x >= BORDE && p.x <= W - BORDE && p.y >= BORDE && p.y <= H - BORDE;
+}
+
+function hexARgb(hex) {
+  const h = hex.replace("#", "");
+  return {
+    r: parseInt(h.substring(0, 2), 16),
+    g: parseInt(h.substring(2, 4), 16),
+    b: parseInt(h.substring(4, 6), 16),
+    a: 255
+  };
+}
+
+function mismoColor(data, i, target, tol) {
+  return (
+    Math.abs(data[i]   - target.r) <= tol &&
+    Math.abs(data[i+1] - target.g) <= tol &&
+    Math.abs(data[i+2] - target.b) <= tol &&
+    Math.abs(data[i+3] - target.a) <= tol
+  );
+}
+
+/* Flood fill respetando el borde negro interno */
+function floodFill(x, y, colorHex) {
+  x = Math.floor(x); y = Math.floor(y);
+  if (x < BORDE || y < BORDE || x >= W - BORDE || y >= H - BORDE) return;
+
+  const imgData = ctx.getImageData(0, 0, W, H);
+  const data = imgData.data;
+  const target = {
+    r: data[(y*W + x)*4],
+    g: data[(y*W + x)*4 + 1],
+    b: data[(y*W + x)*4 + 2],
+    a: data[(y*W + x)*4 + 3]
+  };
+  const relleno = hexARgb(colorHex);
+  if (
+    Math.abs(target.r - relleno.r) < 5 &&
+    Math.abs(target.g - relleno.g) < 5 &&
+    Math.abs(target.b - relleno.b) < 5 &&
+    target.a === relleno.a
+  ) return;
+
+  const tol = 32;
+  const stack = [[x, y]];
+  const visitados = new Uint8Array(W * H);
+
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    // Nunca tocar el borde negro
+    if (cx < BORDE || cy < BORDE || cx >= W - BORDE || cy >= H - BORDE) continue;
+
+    const idx = cy * W + cx;
+    if (visitados[idx]) continue;
+    visitados[idx] = 1;
+    const i = idx * 4;
+    if (!mismoColor(data, i, target, tol)) continue;
+
+    data[i]   = relleno.r;
+    data[i+1] = relleno.g;
+    data[i+2] = relleno.b;
+    data[i+3] = relleno.a;
+
+    if (cx > BORDE) stack.push([cx - 1, cy]);
+    if (cx < W - BORDE - 1) stack.push([cx + 1, cy]);
+    if (cy > BORDE) stack.push([cx, cy - 1]);
+    if (cy < H - BORDE - 1) stack.push([cx, cy + 1]);
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+/* Dibuja una figura geométrica dados dos puntos */
+function dibujarFigura(p1, p2) {
+  const x1 = p1.x, y1 = p1.y;
+  const x2 = p2.x, y2 = p2.y;
+
+  ctx.save();
+  ctx.strokeStyle = colorActual;
+  ctx.fillStyle = colorActual;
+  ctx.lineWidth = tamanoPincel;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  if (herramienta === "linea") {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  else if (herramienta === "rect") {
+    const rx = Math.min(x1, x2);
+    const ry = Math.min(y1, y2);
+    const rw = Math.abs(x2 - x1);
+    const rh = Math.abs(y2 - y1);
+    ctx.beginPath();
+    ctx.rect(rx, ry, rw, rh);
+    if (rellenarFigura) ctx.fill();
+    ctx.stroke();
+  }
+  else if (herramienta === "circle") {
+    // Círculo con centro en el punto inicial y radio = distancia al punto final
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const radio = Math.sqrt(dx*dx + dy*dy);
+    ctx.beginPath();
+    ctx.arc(x1, y1, radio, 0, Math.PI*2);
+    if (rellenarFigura) ctx.fill();
+    ctx.stroke();
+  }
+  else if (herramienta === "triangulo") {
+    // Triángulo isósceles: base abajo, punta arriba
+    const rx = Math.min(x1, x2);
+    const ry = Math.min(y1, y2);
+    const rw = Math.abs(x2 - x1);
+    const rh = Math.abs(y2 - y1);
+    ctx.beginPath();
+    ctx.moveTo(rx + rw/2, ry);          // Punta superior
+    ctx.lineTo(rx + rw, ry + rh);       // Inferior derecha
+    ctx.lineTo(rx, ry + rh);            // Inferior izquierda
+    ctx.closePath();
+    if (rellenarFigura) ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* Restaura el lienzo al estado previo al arrastre de la figura */
+function restaurarSnapshot() {
+  if (snapshotPrevio) {
+    ctx.putImageData(snapshotPrevio, 0, 0);
+    redibujarBordeNegro();
+  }
+}
+
+function empezarDibujo(e) {
+  if (esperandoSiguiente) return;
+  e.preventDefault();
+
+  let p = posicion(e);
+  p = limitarAlAreaPintable(p);
+
+  if (herramienta === "balde") {
+    floodFill(p.x, p.y, colorActual);
+    return;
+  }
+
+  // Figuras geométricas: guardamos punto de inicio y snapshot
+  if (HERRAMIENTAS_FIGURA.includes(herramienta)) {
+    figuraInicio = p;
+    snapshotPrevio = ctx.getImageData(0, 0, W, H);
+    dibujando = true;
+    return;
+  }
+
+  // Pincel / Borrador
+  dibujando = true;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  ctx.lineTo(p.x + 0.01, p.y);
+  ctx.strokeStyle = herramienta === "borrador" ? "#FFFFFF" : colorActual;
+  ctx.lineWidth = tamanoPincel;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+}
+
+function dibujar(e) {
+  if (!dibujando || esperandoSiguiente) return;
+  e.preventDefault();
+
+  let p = posicion(e);
+  p = limitarAlAreaPintable(p);
+
+  // Figuras: restauramos snapshot y redibujamos con previsualización
+  if (HERRAMIENTAS_FIGURA.includes(herramienta) && figuraInicio) {
+    restaurarSnapshot();
+    dibujarFigura(figuraInicio, p);
+    return;
+  }
+
+  // Pincel / Borrador
+  ctx.lineTo(p.x, p.y);
+  ctx.strokeStyle = herramienta === "borrador" ? "#FFFFFF" : colorActual;
+  ctx.lineWidth = tamanoPincel;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+}
+
+function terminarDibujo(e) {
+  if (!dibujando) return;
+  e.preventDefault();
+  dibujando = false;
+
+  if (HERRAMIENTAS_FIGURA.includes(herramienta) && figuraInicio) {
+    // La figura ya quedó dibujada en el último "dibujar"
+    figuraInicio = null;
+    snapshotPrevio = null;
+  }
+}
+
+canvas.addEventListener("mousedown", empezarDibujo);
+canvas.addEventListener("mousemove", dibujar);
+canvas.addEventListener("mouseup", terminarDibujo);
+canvas.addEventListener("mouseleave", terminarDibujo);
+canvas.addEventListener("touchstart", empezarDibujo, { passive: false });
+canvas.addEventListener("touchmove", dibujar, { passive: false });
+canvas.addEventListener("touchend", terminarDibujo, { passive: false });
+canvas.addEventListener("touchcancel", terminarDibujo, { passive: false });
+
+/* ============================================================
+   7. BORDE NEGRO
+   ============================================================ */
+function redibujarBordeNegro() {
+  // Pintamos el marco negro por dentro del canvas
+  ctx.save();
+  ctx.fillStyle = "#000000";
+  // Arriba
+  ctx.fillRect(0, 0, W, BORDE);
+  // Abajo
+  ctx.fillRect(0, H - BORDE, W, BORDE);
+  // Izquierda
+  ctx.fillRect(0, 0, BORDE, H);
+  // Derecha
+  ctx.fillRect(W - BORDE, 0, BORDE, H);
+  ctx.restore();
+}
+
+function limpiarLienzo() {
+  // Área pintable en blanco
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, W, H);
+  // Borde negro encima
+  redibujarBordeNegro();
+}
+
+/* ============================================================
+   8. LÓGICA DE PARTIDA — PAÍSES SIN REPETICIÓN
+   ============================================================ */
+function mezclar(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function rellenarColaPaises() {
+  const todos = PAISES.map((_, i) => i);
+  let candidatos = todos.filter(i => !paisesUsadosPartida.includes(i));
+  if (candidatos.length === 0) {
+    paisesUsadosPartida = [];
+    candidatos = [...todos];
+  }
+  paisesDisponiblesRonda = mezclar(candidatos);
+}
+
+function obtenerSiguientePais() {
+  if (paisesDisponiblesRonda.length === 0) {
+    rellenarColaPaises();
+  }
+  const idx = paisesDisponiblesRonda.shift();
+  paisesUsadosPartida.push(idx);
+  return idx;
+}
+
+function iniciarRonda() {
+  paisJ1 = obtenerSiguientePais();
+  if (modoJuego === 2) {
+    paisJ2 = obtenerSiguientePais();
+  } else {
+    paisJ2 = null;
+  }
+  jugadorActual = 1;
+  cargarTurno();
+}
+
+function cargarTurno() {
+  if (modoJuego === 2) {
+    indicePaisActual = jugadorActual === 1 ? paisJ1 : paisJ2;
+  } else {
+    indicePaisActual = paisJ1;
+  }
+  paisActual = PAISES[indicePaisActual];
+
+  document.getElementById("contador").textContent =
+    `Ronda ${ronda} · Meta: ${puntosMeta} puntos`;
+
+  if (modoJuego === 2) {
+    document.getElementById("turnoActual").textContent =
+      `🎯 Turno: Jugador ${jugadorActual}`;
+    document.getElementById("turnoActual").style.color =
+      jugadorActual === 1 ? "#74ACDF" : "#e74c3c";
+  } else {
+    document.getElementById("turnoActual").textContent = "👤 Modo solitario";
+    document.getElementById("turnoActual").style.color = "#ffe066";
+  }
+
+  document.getElementById("nombrePais").innerHTML =
+    paisActual.nombre + "<small>Dibuja su bandera</small>";
+
+  document.getElementById("pistaTexto").style.display = "none";
+  document.getElementById("pistaTexto").textContent = "";
+  document.getElementById("resultado").style.display = "none";
+  document.getElementById("btnSiguiente").style.display = "none";
+  document.getElementById("btnEvaluar").disabled = false;
+  document.getElementById("btnLimpiar").disabled = false;
+  esperandoSiguiente = false;
+  puntajeRondaActual = 0;
+
+  setHerramienta("pincel");
+  limpiarLienzo();
+  actualizarMarcador();
+}
+
+function iniciarPartida(modo) {
+  modoJuego = modo;
+  puntosJ1 = 0;
+  puntosJ2 = 0;
+  ronda = 1;
+  jugadorActual = 1;
+  paisesUsadosPartida = [];
+  paisesDisponiblesRonda = [];
+  paisJ1 = null;
+  paisJ2 = null;
+  esperandoSiguiente = false;
+  puntajeRondaActual = 0;
+
+  document.getElementById("pantallaInicio").style.display = "none";
+  document.getElementById("pantallaFinal").style.display = "none";
+  document.getElementById("juegoCompleto").style.display = "flex";
+
+  document.getElementById("marcador").style.display = modo === 2 ? "flex" : "none";
+  document.getElementById("tarjetaJ2").style.display = modo === 2 ? "block" : "none";
+
+  actualizarMarcador();
+  iniciarRonda();
+}
+
+function actualizarMarcador() {
+  document.getElementById("puntosJ1").textContent = puntosJ1;
+  document.getElementById("puntosJ2").textContent = puntosJ2;
+
+  if (modoJuego === 2) {
+    document.getElementById("tarjetaJ1").classList.toggle("activo", jugadorActual === 1);
+    document.getElementById("tarjetaJ2").classList.toggle("activo", jugadorActual === 2);
+  }
+}
+
+/* ============================================================
+   9. EVALUACIÓN (ignora el borde negro)
+   ============================================================ */
+function generarBanderaReal(pais, w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cx = c.getContext("2d");
+  // Dibujar la bandera SOLO en el área interior (sin borde)
+  cx.save();
+  // Trasladamos y dibujamos en el área pintable
+  cx.translate(BORDE, BORDE);
+  const anchoInt = w - BORDE*2;
+  const altoInt = h - BORDE*2;
+  // Fondo blanco en el área interior por si la bandera no cubre todo
+  cx.fillStyle = "#FFFFFF";
+  cx.fillRect(0, 0, anchoInt, altoInt);
+  // Dibujamos la bandera a tamaño del área interior
+  pais.dibujar(cx, anchoInt, altoInt);
+  cx.restore();
+  // Pintamos el borde negro para que coincida con la referencia visual
+  cx.save();
+  cx.fillStyle = "#000000";
+  cx.fillRect(0, 0, w, BORDE);
+  cx.fillRect(0, h - BORDE, w, BORDE);
+  cx.fillRect(0, 0, BORDE, h);
+  cx.fillRect(w - BORDE, 0, BORDE, h);
+  cx.restore();
+  return c;
+}
+
+function calcularPorcentaje() {
+  const realCanvas = generarBanderaReal(paisActual, W, H);
+  const realCtx = realCanvas.getContext("2d");
+  const realData = realCtx.getImageData(0, 0, W, H).data;
+  const userData = ctx.getImageData(0, 0, W, H).data;
+
+  let aciertos = 0, total = 0;
+  const tolerancia = 60;
+  const paso = 2;
+
+  // Solo evaluamos el área interior (ignoramos el borde negro)
+  for (let y = BORDE; y < H - BORDE; y += paso) {
+    for (let x = BORDE; x < W - BORDE; x += paso) {
+      const i = (y * W + x) * 4;
+      const dr = Math.abs(realData[i]   - userData[i]);
+      const dg = Math.abs(realData[i+1] - userData[i+1]);
+      const db = Math.abs(realData[i+2] - userData[i+2]);
+      const distancia = Math.sqrt(dr*dr + dg*dg + db*db);
+      if (distancia < tolerancia) aciertos++;
+      total++;
+    }
+  }
+  return { porcentaje: Math.round((aciertos / total) * 100), realCanvas };
+}
+
+function evaluar() {
+  const { porcentaje, realCanvas } = calcularPorcentaje();
+  puntajeRondaActual = porcentaje;
+
+  const resEl = document.getElementById("resultado");
+  resEl.style.display = "block";
+
+  let titulo = "Tu puntuación:";
+  if (modoJuego === 2) titulo = `Jugador ${jugadorActual} — Puntuación:`;
+  document.getElementById("tituloResultado").textContent = titulo;
+  document.getElementById("porcentaje").textContent = porcentaje + "%";
+
+  const porcEl = document.getElementById("porcentaje");
+  if (porcentaje >= 85) porcEl.style.color = "#28c76f";
+  else if (porcentaje >= 60) porcEl.style.color = "#FFCE00";
+  else if (porcentaje >= 35) porcEl.style.color = "#ff9f43";
+  else porcEl.style.color = "#e74c3c";
+
+  let msg = "";
+  if (porcentaje >= 90) msg = "🏆 ¡Increíble! Casi perfecta.";
+  else if (porcentaje >= 75) msg = "🎉 ¡Muy bien! Se parece mucho.";
+  else if (porcentaje >= 55) msg = "👍 Buen intento, vas por buen camino.";
+  else if (porcentaje >= 35) msg = "🙂 No está mal, pero puedes mejorar.";
+  else msg = "💪 Sigue practicando, ¡tú puedes!";
+  document.getElementById("mensaje").textContent = msg;
+
+  const miniU = document.getElementById("miniUsuario");
+  const miniR = document.getElementById("miniReal");
+  miniU.getContext("2d").drawImage(canvas, 0, 0, miniU.width, miniU.height);
+  miniR.getContext("2d").drawImage(realCanvas, 0, 0, miniR.width, miniR.height);
+
+  esperandoSiguiente = true;
+  document.getElementById("btnEvaluar").disabled = true;
+  document.getElementById("btnLimpiar").disabled = true;
+
+  if (modoJuego === 2) {
+    document.getElementById(`rondaJ${jugadorActual}`).textContent =
+      `${paisActual.nombre}: ${porcentaje}%`;
+  }
+
+  document.getElementById("btnSiguiente").style.display = "inline-block";
+  resEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ============================================================
+   10. FLUJO DE TURNOS Y RONDAS
+   ============================================================ */
+let puntajesRondaTemp = { j1: 0 };
+
+function guardarPuntajeTemporal() {
+  puntajesRondaTemp.j1 = puntajeRondaActual;
+}
+
+function resaltarGanadorRonda(jugador) {
+  const tarjeta = document.getElementById(`tarjetaJ${jugador}`);
+  tarjeta.classList.add("ganador-ronda");
+  setTimeout(() => tarjeta.classList.remove("ganador-ronda"), 1200);
+}
+
+function siguienteTurno() {
+  document.getElementById("resultado").style.display = "none";
+  document.getElementById("btnSiguiente").style.display = "none";
+
+  if (modoJuego === 1) {
+    if (puntajeRondaActual >= 70) {
+      puntosJ1++;
+      actualizarMarcador();
+    }
+    if (puntosJ1 >= puntosMeta) {
+      mostrarGanador(1);
+      return;
+    }
+    ronda++;
+    iniciarRonda();
+    return;
+  }
+
+  if (jugadorActual === 1) {
+    guardarPuntajeTemporal();
+    jugadorActual = 2;
+    document.getElementById("rondaJ1").textContent =
+      `Ronda ${ronda}: ${puntajeRondaActual}%`;
+    cargarTurno();
+    actualizarMarcador();
+  } else {
+    const puntajeJ1 = puntajesRondaTemp.j1;
+    const puntajeJ2 = puntajeRondaActual;
+
+    document.getElementById("rondaJ2").textContent =
+      `Ronda ${ronda}: ${puntajeJ2}%`;
+
+    if (puntajeJ1 > puntajeJ2) {
+      puntosJ1++;
+      resaltarGanadorRonda(1);
+    } else if (puntajeJ2 > puntajeJ1) {
+      puntosJ2++;
+      resaltarGanadorRonda(2);
+    }
+
+    actualizarMarcador();
+
+    if (puntosJ1 >= puntosMeta) { mostrarGanador(1); return; }
+    if (puntosJ2 >= puntosMeta) { mostrarGanador(2); return; }
+
+    ronda++;
+    jugadorActual = 1;
+    iniciarRonda();
+  }
+}
+
+/* ============================================================
+   11. PANTALLA FINAL
+   ============================================================ */
+function mostrarGanador(jugador) {
+  document.getElementById("juegoCompleto").style.display = "none";
+  const pantallaFinal = document.getElementById("pantallaFinal");
+  pantallaFinal.style.display = "block";
+
+  if (modoJuego === 1) {
+    document.getElementById("ganadorTitulo").textContent = "🎉 ¡Completaste el desafío!";
+    document.getElementById("ganadorTexto").textContent =
+      `Llegaste a ${puntosJ1} de ${puntosMeta} puntos en ${ronda} ronda${ronda !== 1 ? 's' : ''}. ¡Excelente trabajo!`;
+  } else {
+    document.getElementById("ganadorTitulo").textContent = `¡Ganó el Jugador ${jugador}!`;
+    const marcadorFinal = `Jugador 1: ${puntosJ1} · Jugador 2: ${puntosJ2}`;
+    document.getElementById("ganadorTexto").textContent =
+      `${marcadorFinal} — Partida terminada en la ronda ${ronda}.`;
+  }
+}
+
+/* ============================================================
+   12. BOTONES
+   ============================================================ */
+document.getElementById("btnLimpiar").addEventListener("click", () => {
+  if (esperandoSiguiente) return;
+  limpiarLienzo();
+  document.getElementById("resultado").style.display = "none";
+});
+
+document.getElementById("btnPista").addEventListener("click", () => {
+  const p = document.getElementById("pistaTexto");
+  p.textContent = "💡 " + paisActual.pista;
+  p.style.display = "block";
+});
+
+document.getElementById("btnEvaluar").addEventListener("click", evaluar);
+document.getElementById("btnSiguiente").addEventListener("click", siguienteTurno);
+
+document.getElementById("btnUnJugador").addEventListener("click", () => iniciarPartida(1));
+document.getElementById("btnDosJugadores").addEventListener("click", () => iniciarPartida(2));
+
+document.getElementById("btnReiniciar").addEventListener("click", () => {
+  document.getElementById("pantallaFinal").style.display = "none";
+  iniciarPartida(modoJuego);
+});
+
+document.getElementById("btnSalir").addEventListener("click", () => {
+  document.getElementById("pantallaFinal").style.display = "none";
+  document.getElementById("juegoCompleto").style.display = "none";
+  document.getElementById("pantallaInicio").style.display = "block";
+});
+
+/* ============================================================
+   13. ARRANQUE
+   ============================================================ */
+limpiarLienzo();
+</script>
+</body>
+</html>
